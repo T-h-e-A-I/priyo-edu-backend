@@ -1,0 +1,32 @@
+{
+  "name": "priyo-edu-back",
+  "version": "1.0.0",
+  "description": "Minimal Express backend for Priyo Academy (edtech, health, version APIs).",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "NODE_ENV=production node index.js",
+    "seed:courses": "node database/seedCourses.js"
+  },
+  "keywords": [
+    "express",
+    "api",
+    "edtech",
+    "health"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "pg": "^8.12.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
+
+
