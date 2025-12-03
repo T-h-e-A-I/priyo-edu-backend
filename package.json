@@ -7,7 +7,9 @@
   "scripts": {
     "dev": "nodemon index.js",
     "start": "NODE_ENV=production node index.js",
-    "seed:courses": "node database/seedCourses.js"
+    "seed:courses": "node database/seedCourses.js",
+    "seed:course-content:all": "node database/seedAllCourseContent.js",
+    "seed:course-content:ml": "node database/seedCourseContent.js"
   },
   "keywords": [
     "express",
