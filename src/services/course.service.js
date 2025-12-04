@@ -37,6 +37,103 @@ export async function getCourses(category) {
   return result.rows;
 }
 
+// Admin: create a new course
+export async function createCourse(payload) {
+  const {
+    title,
+    description,
+    category,
+    instructor,
+    duration,
+    students = 0,
+    rating = null,
+    price,
+    level,
+    thumbnail,
+    videos = 0,
+    quizzes = 0,
+    pdfs = 0,
+  } = payload;
+
+  const res = await pool.query(
+    `
+      INSERT INTO courses (
+        title, description, category, instructor, duration,
+        students, rating, price, level, thumbnail, videos, quizzes, pdfs
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+      RETURNING *
+    `,
+    [
+      title,
+      description,
+      category,
+      instructor,
+      duration,
+      students,
+      rating,
+      price,
+      level,
+      thumbnail,
+      videos,
+      quizzes,
+      pdfs,
+    ],
+  );
+
+  return res.rows[0];
+}
+
+// Admin: update an existing course
+export async function updateCourse(id, payload) {
+  const res = await pool.query(
+    `
+      UPDATE courses
+      SET
+        title = COALESCE($2, title),
+        description = COALESCE($3, description),
+        category = COALESCE($4, category),
+        instructor = COALESCE($5, instructor),
+        duration = COALESCE($6, duration),
+        students = COALESCE($7, students),
+        rating = COALESCE($8, rating),
+        price = COALESCE($9, price),
+        level = COALESCE($10, level),
+        thumbnail = COALESCE($11, thumbnail),
+        videos = COALESCE($12, videos),
+        quizzes = COALESCE($13, quizzes),
+        pdfs = COALESCE($14, pdfs),
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [
+      id,
+      payload.title ?? null,
+      payload.description ?? null,
+      payload.category ?? null,
+      payload.instructor ?? null,
+      payload.duration ?? null,
+      payload.students ?? null,
+      payload.rating ?? null,
+      payload.price ?? null,
+      payload.level ?? null,
+      payload.thumbnail ?? null,
+      payload.videos ?? null,
+      payload.quizzes ?? null,
+      payload.pdfs ?? null,
+    ],
+  );
+
+  return res.rows[0] || null;
+}
+
+// Admin: delete a course (cascades to chapters/modules)
+export async function deleteCourse(id) {
+  const res = await pool.query('DELETE FROM courses WHERE id = $1', [id]);
+  return res.rowCount > 0;
+}
+
 // Fetch a single course by id (metadata only, no chapters or modules).
 export async function getCourseById(courseId) {
   const courseRes = await pool.query(
@@ -100,19 +197,21 @@ export async function getCourseChapters(courseId) {
   }));
 }
 
-// Fetch the three modules (live, pdf, quiz) for a chapter, without quiz questions.
+// Fetch the latest three modules (live, pdf, quiz) for a chapter, without quiz questions.
 export async function getChapterModules(chapterId) {
   const [liveRes, pdfRes, quizRes] = await Promise.all([
     pool.query(
       `
         SELECT
           id,
+          title,
           youtube_url,
           zoom_url,
           status,
           scheduled_at
         FROM live_classes
         WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
         LIMIT 1
       `,
       [chapterId],
@@ -126,6 +225,7 @@ export async function getChapterModules(chapterId) {
           status
         FROM pdf_resources
         WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
         LIMIT 1
       `,
       [chapterId],
@@ -140,6 +240,7 @@ export async function getChapterModules(chapterId) {
           scheduled_at
         FROM quizzes
         WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
         LIMIT 1
       `,
       [chapterId],
@@ -154,6 +255,7 @@ export async function getChapterModules(chapterId) {
     live: liveRow
       ? {
           id: liveRow.id,
+          title: liveRow.title,
           youtubeUrl: liveRow.youtube_url,
           zoomUrl: liveRow.zoom_url,
           status: liveRow.status,
@@ -177,6 +279,78 @@ export async function getChapterModules(chapterId) {
           scheduledAt: quizRow.scheduled_at,
         }
       : null,
+  };
+}
+
+// Admin: fetch all modules for a chapter (all live/pdf/quizzes), newest first.
+export async function getAllChapterModules(chapterId) {
+  const [liveRes, pdfRes, quizRes] = await Promise.all([
+    pool.query(
+      `
+        SELECT
+          id,
+          title,
+          youtube_url,
+          zoom_url,
+          status,
+          scheduled_at
+        FROM live_classes
+        WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
+      `,
+      [chapterId],
+    ),
+    pool.query(
+      `
+        SELECT
+          id,
+          title,
+          file_url,
+          status
+        FROM pdf_resources
+        WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
+      `,
+      [chapterId],
+    ),
+    pool.query(
+      `
+        SELECT
+          id,
+          title,
+          description,
+          status,
+          scheduled_at
+        FROM quizzes
+        WHERE chapter_id = $1
+        ORDER BY created_at DESC, id DESC
+      `,
+      [chapterId],
+    ),
+  ]);
+
+  return {
+    live: liveRes.rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      youtubeUrl: row.youtube_url,
+      zoomUrl: row.zoom_url,
+      status: row.status,
+      scheduledAt: row.scheduled_at,
+    })),
+    pdf: pdfRes.rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      fileUrl: row.file_url,
+      status: row.status,
+    })),
+    quiz: quizRes.rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      description: row.description,
+      status: row.status,
+      scheduledAt: row.scheduled_at,
+    })),
   };
 }
 
@@ -300,6 +474,7 @@ export async function getCourseDetail(courseId) {
   for (const row of liveRes.rows) {
     liveByChapter.set(row.chapter_id, {
       id: row.id,
+      title: row.title,
       youtubeUrl: row.youtube_url,
       zoomUrl: row.zoom_url,
       status: row.status,

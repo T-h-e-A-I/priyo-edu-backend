@@ -6,6 +6,7 @@ import registerAuthRoutes from './routes/auth.js';
 import registerVersionRoutes from './routes/version.js';
 import { initDb } from '../database/init.js';
 import registerCourseRoutes from './routes/course.js';
+import registerAdminRoutes from './routes/admin.js';
 
 // Kick off database initialization (non-blocking for app bootstrap).
 initDb().catch((error) => {
@@ -28,12 +29,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// CORS configuration
-const allowedOrigin = process.env.FRONTEND_ORIGIN || 'http://localhost:3000';
-
+// CORS configuration (simple: allow all origins in this backend)
 app.use(
   cors({
-    origin: allowedOrigin,
+    origin: true,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -48,16 +47,19 @@ const courseRouter = express.Router();
 const healthRouter = express.Router();
 const versionRouter = express.Router();
 const authRouter = express.Router();
+const adminRouter = express.Router();
 
 registerCourseRoutes(courseRouter);
 registerHealthRoutes(healthRouter);
 registerVersionRoutes(versionRouter);
 registerAuthRoutes(authRouter);
+registerAdminRoutes(adminRouter);
 
 // Mount modular route handlers
 app.use('/api/course', courseRouter);
 app.use('/api/health', healthRouter);
 app.use('/api/version', versionRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 
 export default app;

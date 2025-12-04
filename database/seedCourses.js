@@ -3,7 +3,6 @@ import { pool } from './pool.js';
 // Seed the detailed course data that was previously hardcoded in the frontend courses page.
 const seedData = [
   {
-    id: 1,
     title: 'Complete Machine Learning Bootcamp',
     description:
       'Master machine learning from basics to advanced concepts with hands-on projects and real-world applications.',
@@ -20,7 +19,6 @@ const seedData = [
     pdfs: 12,
   },
   {
-    id: 2,
     title: 'Deep Learning with Neural Networks',
     description: 'Dive deep into neural networks, CNNs, RNNs, and transformers with practical implementations.',
     category: 'ai',
@@ -36,7 +34,6 @@ const seedData = [
     pdfs: 18,
   },
   {
-    id: 3,
     title: 'JavaScript Fundamentals to Advanced',
     description:
       'Complete JavaScript course covering ES6+, async programming, DOM manipulation, and modern frameworks.',
@@ -53,7 +50,6 @@ const seedData = [
     pdfs: 20,
   },
   {
-    id: 4,
     title: 'React & Next.js Full Stack Development',
     description: 'Build modern web applications with React, Next.js, and TypeScript from scratch to deployment.',
     category: 'programming',
@@ -69,7 +65,6 @@ const seedData = [
     pdfs: 25,
   },
   {
-    id: 5,
     title: 'Professional Video Editing with DaVinci Resolve',
     description: 'Master professional video editing, color grading, and audio post-production techniques.',
     category: 'video-editing',
@@ -85,7 +80,6 @@ const seedData = [
     pdfs: 15,
   },
   {
-    id: 6,
     title: 'Adobe Premiere Pro Masterclass',
     description:
       'Complete guide to video editing with Premiere Pro, from basic cuts to advanced effects and workflows.',
@@ -102,7 +96,6 @@ const seedData = [
     pdfs: 18,
   },
   {
-    id: 7,
     title: 'n8n Workflow Automation Mastery',
     description: 'Build powerful automation workflows with n8n, integrate APIs, and streamline business processes.',
     category: 'n8n',
@@ -118,7 +111,6 @@ const seedData = [
     pdfs: 10,
   },
   {
-    id: 8,
     title: 'Advanced n8n Integration Patterns',
     description: 'Advanced n8n techniques, custom nodes, complex workflows, and enterprise automation solutions.',
     category: 'n8n',
@@ -141,9 +133,9 @@ async function seedCourses() {
   for (const course of seedData) {
     await pool.query(
       `
-        INSERT INTO courses (id, title, description, category, instructor, duration, students, rating, price, level, thumbnail, videos, quizzes, pdfs)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-        ON CONFLICT (id) DO UPDATE
+        INSERT INTO courses (title, description, category, instructor, duration, students, rating, price, level, thumbnail, videos, quizzes, pdfs)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        ON CONFLICT (title) DO UPDATE
         SET
           title = EXCLUDED.title,
           description = EXCLUDED.description,
@@ -161,7 +153,6 @@ async function seedCourses() {
           updated_at = NOW()
       `,
       [
-        course.id,
         course.title,
         course.description,
         course.category,
@@ -178,6 +169,11 @@ async function seedCourses() {
       ],
     );
   }
+
+  // Make sure the sequence is ahead of any existing ids so future inserts work.
+  await pool.query(`
+    SELECT setval('courses_id_seq', (SELECT COALESCE(MAX(id), 1) FROM courses));
+  `);
 
   console.log('Seeding completed.');
 }

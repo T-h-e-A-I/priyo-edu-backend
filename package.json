@@ -9,7 +9,8 @@
     "start": "NODE_ENV=production node index.js",
     "seed:courses": "node database/seedCourses.js",
     "seed:course-content:all": "node database/seedAllCourseContent.js",
-    "seed:course-content:ml": "node database/seedCourseContent.js"
+    "seed:course-content:ml": "node database/seedCourseContent.js",
+    "seed:admin": "node database/seedAdmin.js"
   },
   "keywords": [
     "express",
@@ -24,7 +25,8 @@
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "pg": "^8.12.0",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
